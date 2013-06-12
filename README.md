@@ -1,5 +1,4 @@
-![ezSearch](http://our.umbraco.org/media/wiki/74421/635065661813288714_logo_x120.png)
-
+# ![ezSearch](http://our.umbraco.org/media/wiki/74421/635065661813288714_logo_x120.png)  
 # ezSearch
 ezSearch is the easy search solution for your Umbraco MVC websites. It's fast, self contained and completely configurable.
 
