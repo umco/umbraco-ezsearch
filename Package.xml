@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<umbPackage>
+	<info>
+		<package>
+			<name>ezSearch</name>
+			<version>0.0</version>
+			<license url="http://www.opensource.org/licenses/mit-license.php">MIT license</license>
+			<url>http://our.umbraco.org/projects/website-utilities/ezSearch</url>
+			<requirements>
+				<major>6</major>
+				<minor>0</minor>
+				<patch>4</patch>
+			</requirements>
+		</package>
+		<author>
+			<name>Matt Brailsford, Douglas Robar</name>
+			<website>http://our.umbraco.org</website>
+		</author>
+		<readme><![CDATA[ezSearch is the easy search solution for your Umbraco MVC websites. It's fast, self contained and completely configurable.
+
+With ezSearch you can search for words and phrases in your content and media and have the results displayed in a paged list sorted by relevance and with search term highlighting.
+
+ezSearch runs on Umbraco 6.0.4+ and is powered by the built in Lucene index and razor, giving you a fast yet flexible site search package.]]></readme>
+	</info>
+
+	<DocumentTypes>
+		<DocumentType>
+		  <Info>
+			<Name>ezSearch</Name>
+			<Alias>ezSearch</Alias>
+			<Icon>.sprTreeDoc3</Icon>
+			<Thumbnail>docWithImage.png</Thumbnail>
+			<Description>ezSearch page.
+(adjust settings via the macro in the ezSearch template)</Description>
+			<AllowAtRoot>False</AllowAtRoot>
+			<AllowedTemplates>
+			  <Template>ezSearch</Template>
+			</AllowedTemplates>
+			<DefaultTemplate>ezSearch</DefaultTemplate>
+		  </Info>
+		  <Structure />
+		  <GenericProperties>
+			<GenericProperty>
+			  <Name>Hide page?</Name>
+			  <Alias>umbracoNaviHide</Alias>
+			  <Type>38b352c1-e9f8-4fd8-9324-9a2eab06d97a</Type>
+			  <Definition>92897bc6-a5f3-4ffe-ae27-f2e7e33dda49</Definition>
+			  <Tab>
+			  </Tab>
+			  <Mandatory>False</Mandatory>
+			  <Validation>
+			  </Validation>
+			  <Description><![CDATA[]]></Description>
+			</GenericProperty>
+		  </GenericProperties>
+		  <Tabs />
+		</DocumentType>
+	</DocumentTypes>
+	<Templates>
+		<Template>
+		  <Name>ezSearch</Name>
+		  <Alias>ezSearch</Alias>
+		  <Design><![CDATA[@inherits Umbraco.Web.Mvc.UmbracoTemplatePage
+@{
+	Layout = null;
+}
+<h2>@Umbraco.Field("pageName")</h2>
+@Umbraco.RenderMacro("ezSearch")]]></Design>
+		</Template>
+	</Templates>
+	<Stylesheets />
+	<Macros>
+		<macro>
+		  <name>ezSearch</name>
+		  <alias>ezSearch</alias>
+		  <scriptType>
+		  </scriptType>
+		  <scriptAssembly>
+		  </scriptAssembly>
+		  <xslt>
+		  </xslt>
+		  <useInEditor>False</useInEditor>
+		  <refreshRate>0</refreshRate>
+		  <scriptingFile>~/Views/MacroPartials/ezSearch.cshtml</scriptingFile>
+		  <properties>
+			<property name="Root content node to search from" alias="rootContentNodeId" show="True" propertyType="contentPicker" />
+			<property name="Root media node to search from" alias="rootMediaNodeId" show="True" propertyType="mediaCurrent" />
+			<property name="Type of content to search for (CONTENT, MEDIA, BOTH)" alias="indexType" show="True" propertyType="text" />
+			<property name="Fields to search against" alias="searchFields" show="True" propertyType="text" />
+			<property name="Fields to show as the result preview" alias="previewFields" show="True" propertyType="text" />
+			<property name="Maximum length of the preview text" alias="previewLength" show="True" propertyType="number" />
+			<property name="Number of results to show per page" alias="pageSize" show="True" propertyType="number" />
+			<property name="Field that flags whether page should be hidden from results" alias="hideFromSearchField" show="True" propertyType="text" />
+			<property name="Location of the search form (TOP, BOTTOM, BOTH, NONE)" alias="searchFormLocation" show="True" propertyType="text" />
+		  </properties>
+		</macro>
+	</Macros>
+	<DictionaryItems>
+		<DictionaryItem Key="ezSearch">
+		  <Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[]]></Value>
+		  <DictionaryItem Key="[ezSearch] Next">
+			<Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[Next]]></Value>
+		  </DictionaryItem>
+		  <DictionaryItem Key="[ezSearch] No Results">
+			<Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[No results found for search term <strong>{0}</strong>.]]></Value>
+		  </DictionaryItem>
+		  <DictionaryItem Key="[ezSearch] Previous">
+			<Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[Previous]]></Value>
+		  </DictionaryItem>
+		  <DictionaryItem Key="[ezSearch] Results Range">
+			<Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[Showing results <strong>{0}</strong> to <strong>{1}</strong>.]]></Value>
+		  </DictionaryItem>
+		  <DictionaryItem Key="[ezSearch] Search">
+			<Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[Search]]></Value>
+		  </DictionaryItem>
+		  <DictionaryItem Key="[ezSearch] Summary">
+			<Value LanguageId="1" LanguageCultureAlias="en-US"><![CDATA[Your search for <strong>"{0}"</strong> matched <strong>{1}</strong> page(s).]]></Value>
+		  </DictionaryItem>
+		</DictionaryItem>
+	</DictionaryItems>
+	<Languages />
+	<DataTypes />
+  	<Actions>
+		<Action runat="install" undo="false" alias="RebuildIndex" index="ExternalIndexer" />
+	</Actions>
+	<control />
+
+	<files />
+
+</umbPackage>

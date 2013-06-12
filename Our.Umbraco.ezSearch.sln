@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Our.Umbraco.ezSearch", "Src\Our.Umbraco.ezSearch\Our.Umbraco.ezSearch.csproj", "{ACAFC717-342E-40FF-8EC4-4E47F6734D71}"
+EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "UmbracoCms.6.0.4", "http://localhost:50313", "{A3F9BEFE-01BC-4343-9D2D-09AD151DEE09}"
+	ProjectSection(WebsiteProperties) = preProject
+		UseIISExpress = "true"
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		Debug.AspNetCompiler.VirtualPath = "/UmbracoCms.6.0.4"
+		Debug.AspNetCompiler.PhysicalPath = "..\..\..\..\Sandbox\UmbracoCms.6.0.4\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\UmbracoCms.6.0.4\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/UmbracoCms.6.0.4"
+		Release.AspNetCompiler.PhysicalPath = "..\..\..\..\Sandbox\UmbracoCms.6.0.4\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\UmbracoCms.6.0.4\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		SlnRelativePath = "..\..\..\..\Sandbox\UmbracoCms.6.0.4\"
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ACAFC717-342E-40FF-8EC4-4E47F6734D71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACAFC717-342E-40FF-8EC4-4E47F6734D71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACAFC717-342E-40FF-8EC4-4E47F6734D71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACAFC717-342E-40FF-8EC4-4E47F6734D71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3F9BEFE-01BC-4343-9D2D-09AD151DEE09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3F9BEFE-01BC-4343-9D2D-09AD151DEE09}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
