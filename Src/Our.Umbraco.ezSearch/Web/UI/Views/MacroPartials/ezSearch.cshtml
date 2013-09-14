@@ -65,12 +65,11 @@
         var searcher = ExamineManager.Instance.SearchProviderCollection["ExternalSearcher"];
         var criteria = searcher.CreateSearchCriteria();
         var query = new StringBuilder();
-        query.Append("-template:0 ");
         query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
 
         var contentPathFilter = model.RootContentNodeId > 0
-            ? string.Format("__IndexType:{0} +searchPath:{1}", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
-            : string.Format("__IndexType:{0}", UmbracoExamine.IndexTypes.Content);
+            ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
+            : string.Format("__IndexType:{0} -template:0", UmbracoExamine.IndexTypes.Content);
 
         var mediaPathFilter = model.RootMediaNodeId > 0
             ? string.Format("__IndexType:{0} +searchPath:{1}", UmbracoExamine.IndexTypes.Media, model.RootMediaNodeId)
