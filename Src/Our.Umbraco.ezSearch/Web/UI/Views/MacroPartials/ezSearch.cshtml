@@ -1,6 +1,7 @@
 ﻿@using System.Globalization
 @using System.Text
 @using System.Text.RegularExpressions
+@using Examine
 @using Umbraco.Core.Logging
 @using Umbraco.Web.Models
 @inherits Umbraco.Web.Macros.PartialViewMacroPage
@@ -66,7 +67,8 @@
         var criteria = searcher.CreateSearchCriteria();
         var query = new StringBuilder();
         query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
-
+        
+        // Set search path
         var contentPathFilter = model.RootContentNodeId > 0
             ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
             : string.Format("__IndexType:{0} -template:0", UmbracoExamine.IndexTypes.Content);
@@ -109,6 +111,7 @@
         }
 
         var criteria2 = criteria.RawQuery(query.ToString());
+        
         var results = searcher.Search(criteria2)
             .Where(x => !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
             (Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
