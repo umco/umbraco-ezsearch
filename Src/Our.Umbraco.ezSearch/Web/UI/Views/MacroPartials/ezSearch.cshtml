@@ -111,10 +111,11 @@
 
         var criteria2 = criteria.RawQuery(query.ToString());
         var results = searcher.Search(criteria2)
-            .Where(x => !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
-            (Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
-                Umbraco.MemberHasAccess(int.Parse(x.Fields["id"]), x.Fields["path"])))
-                .ToList();
+           .Where(x => !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) && Umbraco.Content(int.Parse(x.Fields["id"])) != null ||
+           (Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
+            Umbraco.MemberHasAccess(int.Parse(x.Fields["id"]), x.Fields["path"])) &&
+            Umbraco.Content(int.Parse(x.Fields["id"])) != null)
+            .ToList();
 
         model.AllResults = results;
 
