@@ -96,7 +96,18 @@
             var groupedOr = new StringBuilder();
             foreach (var searchField in model.SearchFields)
             {
-                groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
+                //check if phrase or keyword
+                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
+                
+                if (!isPhraseTerm)
+                { 
+                    groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
+                }
+                else
+                {
+                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
+                    groupedOr.AppendFormat(@"{0}:""{1}"" ", searchField, term);
+                }
             }
             query.Append("+(" + groupedOr.ToString() + ") ");
         }
@@ -106,7 +117,18 @@
         {
             foreach (var term in model.SearchTerms)
             {
-                query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                //check if phrase or keyword
+                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
+                
+                if (!isPhraseTerm)
+                {
+                    query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                }
+                else
+                {
+                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
+                    query.AppendFormat(@"{0}:""{1}""^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                }
             }
         }
 
