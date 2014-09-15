@@ -37,13 +37,6 @@ namespace Our.Umbraco.ezSearch
                 e.Fields["searchPath"] = e.Fields["path"].Replace(',', ' ');
             }
 
-            // Lowercase all the fields for case insensitive searching
-            var keys = e.Fields.Keys.ToList();
-            foreach (var key in keys)
-            {
-                e.Fields[key] = HttpUtility.HtmlDecode(e.Fields[key].ToLower(CultureInfo.InvariantCulture));
-            }
-
             // Extract the filename from media items
             if(e.Fields.ContainsKey("umbracoFile"))
             {
