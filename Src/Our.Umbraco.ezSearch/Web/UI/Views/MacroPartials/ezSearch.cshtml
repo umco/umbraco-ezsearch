@@ -60,8 +60,7 @@
     if(!string.IsNullOrWhiteSpace(model.SearchTerm))
     {
         // Tokenize the search term
-        model.SearchTerms = Tokenize(model.SearchTerm)
-            .Where(x => !Lucene.Net.Analysis.StopAnalyzer.ENGLISH_STOP_WORDS_SET.Contains(x));
+        model.SearchTerms = Tokenize(model.SearchTerm);
         if (model.SearchTerms.Any())
         {
             // Perform the search
@@ -327,7 +326,8 @@
         return Regex.Matches(input, @"[\""].+?[\""]|[^ ]+")
             .Cast<Match>()
             .Select(m => m.Value.Trim('\"'))
-            .ToList();
+            .ToList()
+            .Where(x => !Lucene.Net.Analysis.StopAnalyzer.ENGLISH_STOP_WORDS_SET.Contains(x));
     }
 
     // Highlights all occurances of the search terms in a body of text
