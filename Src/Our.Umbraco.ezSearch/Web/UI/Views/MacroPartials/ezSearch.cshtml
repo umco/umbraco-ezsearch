@@ -60,7 +60,8 @@
     if(!string.IsNullOrWhiteSpace(model.SearchTerm))
     {
         // Tokenize the search term
-        model.SearchTerms = Tokenize(model.SearchTerm);
+        model.SearchTerms = Tokenize(model.SearchTerm)
+            .Where(x => !Lucene.Net.Analysis.StopAnalyzer.ENGLISH_STOP_WORDS_SET.Contains(x));
         if (model.SearchTerms.Any())
         {
             // Perform the search
@@ -323,22 +324,10 @@
     // Splits a string on space, except where enclosed in quotes
     public IEnumerable<string> Tokenize(string input)
     {
-        var searchTerms = Regex.Matches(input, @"[\""].+?[\""]|[^ ]+")
+        return Regex.Matches(input, @"[\""].+?[\""]|[^ ]+")
             .Cast<Match>()
             .Select(m => m.Value.Trim('\"'))
             .ToList();
-
-        //traverse the searchTerms backwards so keywords that are stop words can be removed
-        for (int i = searchTerms.Count - 1; i >= 0; i--)
-        {
-            if (searchTerms[i].IndexOf(' ') == -1 && Lucene.Net.Analysis.Standard.StandardAnalyzer.STOP_WORDS_SET.Contains(searchTerms[i]))
-            {
-                //not a phrase term and a stopword - remove
-                searchTerms.RemoveAt(i);
-            }
-        }
-
-        return searchTerms;
     }
 
     // Highlights all occurances of the search terms in a body of text
