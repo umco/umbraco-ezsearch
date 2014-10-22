@@ -61,130 +61,132 @@
     {
         // Tokenize the search term
         model.SearchTerms = Tokenize(model.SearchTerm);
-        
-        // Perform the search
-        var searcher = ExamineManager.Instance.SearchProviderCollection["ExternalSearcher"];
-        var criteria = searcher.CreateSearchCriteria();
-        var query = new StringBuilder();
-        query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
-        
-        // Set search path
-        var contentPathFilter = model.RootContentNodeId > 0
-            ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
-            : string.Format("__IndexType:{0} -template:0", UmbracoExamine.IndexTypes.Content);
-
-        var mediaPathFilter = model.RootMediaNodeId > 0
-            ? string.Format("__IndexType:{0} +searchPath:{1}", UmbracoExamine.IndexTypes.Media, model.RootMediaNodeId)
-            : string.Format("__IndexType:{0}", UmbracoExamine.IndexTypes.Media);
-
-        switch (model.IndexType)
+        if (model.SearchTerms.Any())
         {
-            case UmbracoExamine.IndexTypes.Content:
-                query.AppendFormat("+({0}) ", contentPathFilter);
-                break;
-            case UmbracoExamine.IndexTypes.Media:
-                query.AppendFormat("+({0}) ", mediaPathFilter);
-                break;
-            default:
-                query.AppendFormat("+(({0}) ({1})) ", contentPathFilter, mediaPathFilter);
-                break;
-        }
-        
-        // Ensure page contains all search terms in some way
-        foreach (var term in model.SearchTerms)
-        {
-            var groupedOr = new StringBuilder();
-            foreach (var searchField in model.SearchFields)
+            // Perform the search
+            var searcher = ExamineManager.Instance.SearchProviderCollection["ExternalSearcher"];
+            var criteria = searcher.CreateSearchCriteria();
+            var query = new StringBuilder();
+            query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
+            
+            // Set search path
+            var contentPathFilter = model.RootContentNodeId > 0
+                ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
+                : string.Format("__IndexType:{0} -template:0", UmbracoExamine.IndexTypes.Content);
+    
+            var mediaPathFilter = model.RootMediaNodeId > 0
+                ? string.Format("__IndexType:{0} +searchPath:{1}", UmbracoExamine.IndexTypes.Media, model.RootMediaNodeId)
+                : string.Format("__IndexType:{0}", UmbracoExamine.IndexTypes.Media);
+    
+            switch (model.IndexType)
             {
-                //check if phrase or keyword
-                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
-                
-                if (!isPhraseTerm)
-                { 
-                    groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
-                }
-                else
-                {
-                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
-                    groupedOr.AppendFormat(@"{0}:""{1}"" ", searchField, term);
-                }
+                case UmbracoExamine.IndexTypes.Content:
+                    query.AppendFormat("+({0}) ", contentPathFilter);
+                    break;
+                case UmbracoExamine.IndexTypes.Media:
+                    query.AppendFormat("+({0}) ", mediaPathFilter);
+                    break;
+                default:
+                    query.AppendFormat("+(({0}) ({1})) ", contentPathFilter, mediaPathFilter);
+                    break;
             }
-            query.Append("+(" + groupedOr.ToString() + ") ");
-        }
-
-        // Rank content based on positon of search terms in fields
-        for (var i = 0; i < model.SearchFields.Count; i++)
-        {
+            
+            // Ensure page contains all search terms in some way
             foreach (var term in model.SearchTerms)
             {
                 //check if phrase or keyword
                 bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
                 
-                if (!isPhraseTerm)
+                var groupedOr = new StringBuilder();
+                foreach (var searchField in model.SearchFields)
                 {
-                    query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                    if (!isPhraseTerm)
+                    { 
+                        groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
+                    }
+                    else
+                    {
+                        //lucene phrase searches should be enclosed in quotes and don't support wildcard
+                        groupedOr.AppendFormat(@"{0}:""{1}"" ", searchField, term);
+                    }
                 }
-                else
+                query.Append("+(" + groupedOr.ToString() + ") ");
+            }
+    
+            // Rank content based on positon of search terms in fields
+            for (var i = 0; i < model.SearchFields.Count; i++)
+            {
+                foreach (var term in model.SearchTerms)
                 {
-                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
-                    query.AppendFormat(@"{0}:""{1}""^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                    //check if phrase or keyword
+                    bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
+                    
+                    if (!isPhraseTerm)
+                    {
+                        query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                    }
+                    else
+                    {
+                        //lucene phrase searches should be enclosed in quotes and don't support wildcard
+                        query.AppendFormat(@"{0}:""{1}""^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                    }
+                }
+            }
+    
+            var criteria2 = criteria.RawQuery(query.ToString());
+            
+            var results = searcher.Search(criteria2)
+               .Where(x => (
+                    !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
+                    (
+                        Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
+                        Umbraco.MemberHasAccess(int.Parse(x.Fields["id"]), x.Fields["path"])
+                    )) && (
+                        (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Content && Umbraco.TypedContent(int.Parse(x.Fields["id"])) != null) ||
+                        (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Media && Umbraco.TypedMedia(int.Parse(x.Fields["id"])) != null)
+                    ))
+                .ToList();
+    
+            model.AllResults = results;
+    
+            model.TotalResults = results.Count;
+            model.TotalPages = (int)Math.Ceiling((decimal)model.TotalResults / model.PageSize);
+            model.CurrentPage = Math.Max(1, Math.Min(model.TotalPages, model.CurrentPage));
+            
+            // Page the results
+            model.PagedResults = model.AllResults.Skip(model.PageSize * (model.CurrentPage - 1)).Take(model.PageSize);
+    
+            LogHelper.Debug<string>("[ezSearch] Searching Lucene with the following query: " + query.ToString());
+            
+            if (!model.PagedResults.Any())
+            {
+                // No results found, so render no results view
+                if(model.SearchFormLocation != "none")
+                {
+                    @RenderForm(model)
+                }
+                @RenderNoResults(model)
+            }
+            else
+            {
+                // Render out the results
+                if (model.SearchFormLocation == "top" || model.SearchFormLocation == "both")
+                {
+                    @RenderForm(model)
+                }
+                @RenderSummary(model)
+                @RenderResultsRange(model)
+                @RenderResults(model)
+                if(model.TotalPages > 1)
+                {
+                    @RenderPager(model)  
+                }
+                if (model.SearchFormLocation == "bottom" || model.SearchFormLocation == "both")
+                {
+                    @RenderForm(model)
                 }
             }
         }
-
-        var criteria2 = criteria.RawQuery(query.ToString());
-        
-        var results = searcher.Search(criteria2)
-           .Where(x => (
-                !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
-                (
-                    Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
-                    Umbraco.MemberHasAccess(int.Parse(x.Fields["id"]), x.Fields["path"])
-                )) && (
-                    (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Content && Umbraco.TypedContent(int.Parse(x.Fields["id"])) != null) ||
-                    (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Media && Umbraco.TypedMedia(int.Parse(x.Fields["id"])) != null)
-                ))
-            .ToList();
-
-        model.AllResults = results;
-
-        model.TotalResults = results.Count;
-        model.TotalPages = (int)Math.Ceiling((decimal)model.TotalResults / model.PageSize);
-        model.CurrentPage = Math.Max(1, Math.Min(model.TotalPages, model.CurrentPage));
-        
-        // Page the results
-        model.PagedResults = model.AllResults.Skip(model.PageSize * (model.CurrentPage - 1)).Take(model.PageSize);
-
-        LogHelper.Debug<string>("[ezSearch] Searching Lucene with the following query: " + query.ToString());
-        
-        if (!model.PagedResults.Any())
-        {
-            // No results found, so render no results view
-            if(model.SearchFormLocation != "none")
-            {
-                @RenderForm(model)
-            }
-            @RenderNoResults(model)
-        }
-        else
-        {
-            // Render out the results
-            if (model.SearchFormLocation == "top" || model.SearchFormLocation == "both")
-            {
-                @RenderForm(model)
-            }
-            @RenderSummary(model)
-            @RenderResultsRange(model)
-            @RenderResults(model)
-            if(model.TotalPages > 1)
-            {
-                @RenderPager(model)  
-            }
-            if (model.SearchFormLocation == "bottom" || model.SearchFormLocation == "both")
-            {
-                @RenderForm(model)
-            }
-        }   
     }
     else
     {
@@ -324,7 +326,8 @@
         return Regex.Matches(input, @"[\""].+?[\""]|[^ ]+")
             .Cast<Match>()
             .Select(m => m.Value.Trim('\"'))
-            .ToList();
+            .ToList()
+            .Where(x => !Lucene.Net.Analysis.StopAnalyzer.ENGLISH_STOP_WORDS_SET.Contains(x));
     }
 
     // Highlights all occurances of the search terms in a body of text
