@@ -323,7 +323,7 @@
     {
         return Regex.Matches(input, @"[\""].+?[\""]|[^ ]+")
             .Cast<Match>()
-            .Select(m => m.Value.Trim('\"'))
+            .Select(m => QueryParser.Escape(m.Value.Trim('\"')))
             .ToList();
     }
 
