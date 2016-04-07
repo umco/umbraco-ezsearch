@@ -7,6 +7,7 @@
 @inherits Umbraco.Web.Macros.PartialViewMacroPage
 @{
     int parsedInt;
+    string[] searchTermsToSkip = { "for" };
 
     // Parse querystring / macro parameter
     var model = new SearchViewModel
@@ -55,19 +56,19 @@
     {
         model.SearchFields.Add("umbracoFileName");
     }
-    
+
     // Check the search term isn't empty
     if(!string.IsNullOrWhiteSpace(model.SearchTerm))
     {
         // Tokenize the search term
         model.SearchTerms = Tokenize(model.SearchTerm);
-        
+
         // Perform the search
         var searcher = ExamineManager.Instance.SearchProviderCollection["ExternalSearcher"];
         var criteria = searcher.CreateSearchCriteria();
         var query = new StringBuilder();
         query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
-        
+
         // Set search path
         var contentPathFilter = model.RootContentNodeId > 0
             ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
@@ -89,27 +90,19 @@
                 query.AppendFormat("+(({0}) ({1})) ", contentPathFilter, mediaPathFilter);
                 break;
         }
-        
+
         // Ensure page contains all search terms in some way
         foreach (var term in model.SearchTerms)
         {
-            var groupedOr = new StringBuilder();
-            foreach (var searchField in model.SearchFields)
+            if(!searchTermsToSkip.Contains(term))
             {
-                //check if phrase or keyword
-                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
-                
-                if (!isPhraseTerm)
-                { 
+                var groupedOr = new StringBuilder();
+                foreach (var searchField in model.SearchFields)
+                {
                     groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
                 }
-                else
-                {
-                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
-                    groupedOr.AppendFormat(@"{0}:""{1}"" ", searchField, term);
-                }
+                query.Append("+(" + groupedOr.ToString() + ") ");
             }
-            query.Append("+(" + groupedOr.ToString() + ") ");
         }
 
         // Rank content based on positon of search terms in fields
@@ -117,23 +110,12 @@
         {
             foreach (var term in model.SearchTerms)
             {
-                //check if phrase or keyword
-                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
-                
-                if (!isPhraseTerm)
-                {
-                    query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
-                }
-                else
-                {
-                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
-                    query.AppendFormat(@"{0}:""{1}""^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
-                }
+                query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
             }
         }
 
         var criteria2 = criteria.RawQuery(query.ToString());
-        
+
         var results = searcher.Search(criteria2)
            .Where(x => (
                 !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
@@ -151,12 +133,12 @@
         model.TotalResults = results.Count;
         model.TotalPages = (int)Math.Ceiling((decimal)model.TotalResults / model.PageSize);
         model.CurrentPage = Math.Max(1, Math.Min(model.TotalPages, model.CurrentPage));
-        
+
         // Page the results
         model.PagedResults = model.AllResults.Skip(model.PageSize * (model.CurrentPage - 1)).Take(model.PageSize);
 
         LogHelper.Debug<string>("[ezSearch] Searching Lucene with the following query: " + query.ToString());
-        
+
         if (!model.PagedResults.Any())
         {
             // No results found, so render no results view
@@ -311,11 +293,26 @@
     // ==================================================
     //  Helper Functions
     //==================================================
-    
+
     // Cleanse the search term
     public string CleanseSearchTerm(string input)
     {
-        return Umbraco.StripHtml(input).ToString();
+        string sanitizedStr = input.Trim().Replace("[", "")
+                                      .Replace("]", "")
+                                      .Replace("{", "")
+                                      .Replace("}", "")
+                                      .Replace("(", "")
+                                      .Replace(")", "")
+                                      .Replace("!", "")
+                                      .Replace("^", "");
+
+        // * at start of str throws excep. but valid elsewhere - quick and dirty .. needs regexp
+        if (sanitizedStr.Length > 0 && sanitizedStr[0] == '*')
+        {
+            sanitizedStr = sanitizedStr.Replace("*", "");
+        }
+
+        return Umbraco.StripHtml(sanitizedStr).ToString();
     }
 
     // Splits a string on space, except where enclosed in quotes
@@ -332,26 +329,26 @@
     {
         return Highlight(input.ToString(), searchTerms);
     }
-    
+
     // Highlights all occurances of the search terms in a body of text
     public IHtmlString Highlight(string input, IEnumerable<string> searchTerms)
     {
         input = HttpUtility.HtmlDecode(input);
-        
+
         foreach (var searchTerm in searchTerms)
         {
             input = Regex.Replace(input, Regex.Escape(searchTerm), @"<strong>$0</strong>", RegexOptions.IgnoreCase);
         }
-        
+
         return new HtmlString(input);
     }
-    
+
     // Formats a string and returns as HTML
     public IHtmlString FormatHtml(string input, params object[] args)
     {
         return Html.Raw(string.Format(input, args));
     }
-    
+
     // Gets a dictionary value with a fallback
     public string GetDictionaryValue(string key, string fallback)
     {
@@ -413,7 +410,7 @@
             return fallback;
         }
     }
-    
+
     // Splits a coma seperated string into a list
     public IList<string> SplitToList(string input)
     {
@@ -421,12 +418,12 @@
             .Select(f => f.Trim())
             .Where(f => !string.IsNullOrEmpty(f))
             .ToList();
-    } 
+    }
 
     // ==================================================
     //  Helper Classes
     //==================================================
-    
+
     public class SearchViewModel
     {
         // Query Parameters
