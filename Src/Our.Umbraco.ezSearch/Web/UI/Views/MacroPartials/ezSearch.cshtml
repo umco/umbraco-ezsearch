@@ -6,193 +6,182 @@
 @using Umbraco.Web.Models
 @inherits Umbraco.Web.Macros.PartialViewMacroPage
 @{
-    int parsedInt;
-
-    // Parse querystring / macro parameter
-    var model = new SearchViewModel
+    var model = new SearchViewModel();
+    try
     {
-        SearchTerm = CleanseSearchTerm(("" + Request["q"]).ToLower(CultureInfo.InvariantCulture)),
-        CurrentPage = int.TryParse(Request["p"], out parsedInt) ? parsedInt : 1,
+        int parsedInt;
+        string[] searchTermsToSkip = { "for" };
 
-        PageSize = GetMacroParam(Model, "pageSize", s => int.Parse(s), 10),
-        RootContentNodeId = GetMacroParam(Model, "rootContentNodeId", s => int.Parse(s), -1),
-        RootMediaNodeId = GetMacroParam(Model, "rootMediaNodeId", s => int.Parse(s), -1),
-        IndexType = GetMacroParam(Model, "indexType", s => s.ToLower(CultureInfo.InvariantCulture), ""),
-        SearchFields = GetMacroParam(Model, "searchFields", s => SplitToList(s), new List<string> { "nodeName", "metaTitle", "metaDescription", "metaKeywords", "bodyText" }),
-        PreviewFields = GetMacroParam(Model, "previewFields", s => SplitToList(s), new List<string> { "bodyText" }),
-        PreviewLength = GetMacroParam(Model, "previewLength", s => int.Parse(s), 250),
-        HideFromSearchField = GetMacroParam(Model, "hideFromSearchField", "umbracoNaviHide"),
-        SearchFormLocation = GetMacroParam(Model, "searchFormLocation", s => s.ToLower(), "bottom")
-    };
+        // Parse querystring / macro parameter
 
-    // Validate values
-    if (model.IndexType != UmbracoExamine.IndexTypes.Content &&
-        model.IndexType != UmbracoExamine.IndexTypes.Media)
-    {
-        model.IndexType = "";
-    }
+        model.SearchTerm = CleanseSearchTerm(("" + Request["q"]).ToLower(CultureInfo.InvariantCulture));
+        model.CurrentPage = int.TryParse(Request["p"], out parsedInt) ? parsedInt : 1;
 
-    if (model.SearchFormLocation != "top"
-        && model.SearchFormLocation != "bottom"
-        && model.SearchFormLocation != "both"
-        && model.SearchFormLocation != "none")
-    {
-        model.SearchFormLocation = "bottom";
-    }
+        model.PageSize = GetMacroParam(Model, "pageSize", s => int.Parse(s), 10);
+        model.RootContentNodeId = GetMacroParam(Model, "rootContentNodeId", s => int.Parse(s), -1);
+        model.RootMediaNodeId = GetMacroParam(Model, "rootMediaNodeId", s => int.Parse(s), -1);
+        model.IndexType = GetMacroParam(Model, "indexType", s => s.ToLower(CultureInfo.InvariantCulture), "");
+        model.SearchFields = GetMacroParam(Model, "searchFields", s => SplitToList(s), new List<string> { "nodeName", "metaTitle", "metaDescription", "metaKeywords", "bodyText" });
+        model.PreviewFields = GetMacroParam(Model, "previewFields", s => SplitToList(s), new List<string> { "bodyText" });
+        model.PreviewLength = GetMacroParam(Model, "previewLength", s => int.Parse(s), 250);
+        model.HideFromSearchField = GetMacroParam(Model, "hideFromSearchField", "umbracoNaviHide");
+        model.SearchFormLocation = GetMacroParam(Model, "searchFormLocation", s => s.ToLower(), "bottom");
 
-    // ====================================================
-    // Comment the next if statement out if you want a root
-    // node id of -1 to search content across all sites
-    // and not just the current site.
-    // ====================================================
-    if (model.RootContentNodeId <= 0)
-    {
-        model.RootContentNodeId = Model.Content.AncestorOrSelf(1).Id;
-    }
 
-    // If searching on umbracoFile, also search on umbracoFileName
-    if (model.SearchFields.Contains("umbracoFile") && !model.SearchFields.Contains("umbracoFileName"))
-    {
-        model.SearchFields.Add("umbracoFileName");
-    }
-    
-    // Check the search term isn't empty
-    if(!string.IsNullOrWhiteSpace(model.SearchTerm))
-    {
-        // Tokenize the search term
-        model.SearchTerms = Tokenize(model.SearchTerm);
-        
-        // Perform the search
-        var searcher = ExamineManager.Instance.SearchProviderCollection["ExternalSearcher"];
-        var criteria = searcher.CreateSearchCriteria();
-        var query = new StringBuilder();
-        query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
-        
-        // Set search path
-        var contentPathFilter = model.RootContentNodeId > 0
-            ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
-            : string.Format("__IndexType:{0} -template:0", UmbracoExamine.IndexTypes.Content);
-
-        var mediaPathFilter = model.RootMediaNodeId > 0
-            ? string.Format("__IndexType:{0} +searchPath:{1}", UmbracoExamine.IndexTypes.Media, model.RootMediaNodeId)
-            : string.Format("__IndexType:{0}", UmbracoExamine.IndexTypes.Media);
-
-        switch (model.IndexType)
+        // Validate values
+        if (model.IndexType != UmbracoExamine.IndexTypes.Content &&
+            model.IndexType != UmbracoExamine.IndexTypes.Media)
         {
-            case UmbracoExamine.IndexTypes.Content:
-                query.AppendFormat("+({0}) ", contentPathFilter);
-                break;
-            case UmbracoExamine.IndexTypes.Media:
-                query.AppendFormat("+({0}) ", mediaPathFilter);
-                break;
-            default:
-                query.AppendFormat("+(({0}) ({1})) ", contentPathFilter, mediaPathFilter);
-                break;
+            model.IndexType = "";
         }
-        
-        // Ensure page contains all search terms in some way
-        foreach (var term in model.SearchTerms)
+
+        if (model.SearchFormLocation != "top"
+            && model.SearchFormLocation != "bottom"
+            && model.SearchFormLocation != "both"
+            && model.SearchFormLocation != "none")
         {
-            var groupedOr = new StringBuilder();
-            foreach (var searchField in model.SearchFields)
+            model.SearchFormLocation = "bottom";
+        }
+
+        // ====================================================
+        // Comment the next if statement out if you want a root
+        // node id of -1 to search content across all sites
+        // and not just the current site.
+        // ====================================================
+        if (model.RootContentNodeId <= 0)
+        {
+            model.RootContentNodeId = Model.Content.AncestorOrSelf(1).Id;
+        }
+
+        // If searching on umbracoFile, also search on umbracoFileName
+        if (model.SearchFields.Contains("umbracoFile") && !model.SearchFields.Contains("umbracoFileName"))
+        {
+            model.SearchFields.Add("umbracoFileName");
+        }
+
+        // Check the search term isn't empty
+        if (!string.IsNullOrWhiteSpace(model.SearchTerm))
+        {
+            // Tokenize the search term
+            model.SearchTerms = Tokenize(model.SearchTerm);
+
+            // Perform the search
+            var searcher = ExamineManager.Instance.SearchProviderCollection["ExternalSearcher"];
+            var criteria = searcher.CreateSearchCriteria();
+            var query = new StringBuilder();
+            query.AppendFormat("-{0}:1 ", model.HideFromSearchField);
+
+            // Set search path
+            var contentPathFilter = model.RootContentNodeId > 0
+                ? string.Format("__IndexType:{0} +searchPath:{1} -template:0", UmbracoExamine.IndexTypes.Content, model.RootContentNodeId)
+                : string.Format("__IndexType:{0} -template:0", UmbracoExamine.IndexTypes.Content);
+
+            var mediaPathFilter = model.RootMediaNodeId > 0
+                ? string.Format("__IndexType:{0} +searchPath:{1}", UmbracoExamine.IndexTypes.Media, model.RootMediaNodeId)
+                : string.Format("__IndexType:{0}", UmbracoExamine.IndexTypes.Media);
+
+            switch (model.IndexType)
             {
-                //check if phrase or keyword
-                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
-                
-                if (!isPhraseTerm)
-                { 
-                    groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
-                }
-                else
-                {
-                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
-                    groupedOr.AppendFormat(@"{0}:""{1}"" ", searchField, term);
-                }
+                case UmbracoExamine.IndexTypes.Content:
+                    query.AppendFormat("+({0}) ", contentPathFilter);
+                    break;
+                case UmbracoExamine.IndexTypes.Media:
+                    query.AppendFormat("+({0}) ", mediaPathFilter);
+                    break;
+                default:
+                    query.AppendFormat("+(({0}) ({1})) ", contentPathFilter, mediaPathFilter);
+                    break;
             }
-            query.Append("+(" + groupedOr.ToString() + ") ");
-        }
 
-        // Rank content based on positon of search terms in fields
-        for (var i = 0; i < model.SearchFields.Count; i++)
-        {
+            // Ensure page contains all search terms in some way
             foreach (var term in model.SearchTerms)
             {
-                //check if phrase or keyword
-                bool isPhraseTerm = term.IndexOf(' ') != -1; //contains space - is phrase
-                
-                if (!isPhraseTerm)
+                if (!searchTermsToSkip.Contains(term))
+                {
+                    var groupedOr = new StringBuilder();
+                    foreach (var searchField in model.SearchFields)
+                    {
+                        groupedOr.AppendFormat("{0}:{1}* ", searchField, term);
+                    }
+                    query.Append("+(" + groupedOr.ToString() + ") ");
+                }
+            }
+
+            // Rank content based on positon of search terms in fields
+            for (var i = 0; i < model.SearchFields.Count; i++)
+            {
+                foreach (var term in model.SearchTerms)
                 {
                     query.AppendFormat("{0}:{1}*^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
                 }
-                else
+            }
+
+            var criteria2 = criteria.RawQuery(query.ToString());
+
+            var results = searcher.Search(criteria2)
+               .Where(x => (
+                    !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
+                    (
+                        Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
+                        Umbraco.MemberHasAccess(int.Parse(x.Fields["id"]), x.Fields["path"])
+                    )) && (
+                        (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Content && Umbraco.TypedContent(int.Parse(x.Fields["id"])) != null) ||
+                        (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Media && Umbraco.TypedMedia(int.Parse(x.Fields["id"])) != null)
+                    ))
+                .ToList();
+
+            model.AllResults = results;
+
+            model.TotalResults = results.Count;
+            model.TotalPages = (int)Math.Ceiling((decimal)model.TotalResults / model.PageSize);
+            model.CurrentPage = Math.Max(1, Math.Min(model.TotalPages, model.CurrentPage));
+
+            // Page the results
+            model.PagedResults = model.AllResults.Skip(model.PageSize * (model.CurrentPage - 1)).Take(model.PageSize);
+
+            LogHelper.Debug<string>("[ezSearch] Searching Lucene with the following query: " + query.ToString());
+
+            if (!model.PagedResults.Any())
+            {
+                // No results found, so render no results view
+                if (model.SearchFormLocation != "none")
                 {
-                    //lucene phrase searches should be enclosed in quotes and don't support wildcard
-                    query.AppendFormat(@"{0}:""{1}""^{2} ", model.SearchFields[i], term, model.SearchFields.Count - i);
+                    @RenderForm(model)
+                }
+                @RenderNoResults(model)
+            }
+            else
+            {
+                // Render out the results
+                if (model.SearchFormLocation == "top" || model.SearchFormLocation == "both")
+                {
+                    @RenderForm(model)
+                }
+                @RenderSummary(model)
+                @RenderResultsRange(model)
+                @RenderResults(model)
+                if (model.TotalPages > 1)
+                {
+                    @RenderPager(model)
+                }
+                if (model.SearchFormLocation == "bottom" || model.SearchFormLocation == "both")
+                {
+                    @RenderForm(model)
                 }
             }
         }
-
-        var criteria2 = criteria.RawQuery(query.ToString());
-        
-        var results = searcher.Search(criteria2)
-           .Where(x => (
-                !Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) ||
-                (
-                    Umbraco.IsProtected(int.Parse(x.Fields["id"]), x.Fields["path"]) &&
-                    Umbraco.MemberHasAccess(int.Parse(x.Fields["id"]), x.Fields["path"])
-                )) && (
-                    (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Content && Umbraco.TypedContent(int.Parse(x.Fields["id"])) != null) ||
-                    (x.Fields["__IndexType"] == UmbracoExamine.IndexTypes.Media && Umbraco.TypedMedia(int.Parse(x.Fields["id"])) != null)
-                ))
-            .ToList();
-
-        model.AllResults = results;
-
-        model.TotalResults = results.Count;
-        model.TotalPages = (int)Math.Ceiling((decimal)model.TotalResults / model.PageSize);
-        model.CurrentPage = Math.Max(1, Math.Min(model.TotalPages, model.CurrentPage));
-        
-        // Page the results
-        model.PagedResults = model.AllResults.Skip(model.PageSize * (model.CurrentPage - 1)).Take(model.PageSize);
-
-        LogHelper.Debug<string>("[ezSearch] Searching Lucene with the following query: " + query.ToString());
-        
-        if (!model.PagedResults.Any())
-        {
-            // No results found, so render no results view
-            if(model.SearchFormLocation != "none")
-            {
-                @RenderForm(model)
-            }
-            @RenderNoResults(model)
-        }
         else
         {
-            // Render out the results
-            if (model.SearchFormLocation == "top" || model.SearchFormLocation == "both")
+            // Empty search term so just render the form
+            if (model.SearchFormLocation != "none")
             {
                 @RenderForm(model)
             }
-            @RenderSummary(model)
-            @RenderResultsRange(model)
-            @RenderResults(model)
-            if(model.TotalPages > 1)
-            {
-                @RenderPager(model)  
-            }
-            if (model.SearchFormLocation == "bottom" || model.SearchFormLocation == "both")
-            {
-                @RenderForm(model)
-            }
-        }   
-    }
-    else
-    {
-        // Empty search term so just render the form
-        if(model.SearchFormLocation != "none")
-        {
-            @RenderForm(model)
         }
+    }
+    catch
+    {
+        @RenderNoResults(model)
     }
 }
 
@@ -311,11 +300,26 @@
     // ==================================================
     //  Helper Functions
     //==================================================
-    
+
     // Cleanse the search term
     public string CleanseSearchTerm(string input)
     {
-        return Umbraco.StripHtml(input).ToString();
+        string sanitizedStr = input.Trim().Replace("[", "")
+                                      .Replace("]", "")
+                                      .Replace("{", "")
+                                      .Replace("}", "")
+                                      .Replace("(", "")
+                                      .Replace(")", "")
+                                      .Replace("!", "")
+                                      .Replace("^", "");
+
+        // * at start of str throws excep. but valid elsewhere - quick and dirty .. needs regexp
+        if (sanitizedStr.Length > 0 && sanitizedStr[0] == '*')
+        {
+            sanitizedStr = sanitizedStr.Replace("*", "");
+        }
+
+        return Umbraco.StripHtml(sanitizedStr).ToString();
     }
 
     // Splits a string on space, except where enclosed in quotes
@@ -332,26 +336,26 @@
     {
         return Highlight(input.ToString(), searchTerms);
     }
-    
+
     // Highlights all occurances of the search terms in a body of text
     public IHtmlString Highlight(string input, IEnumerable<string> searchTerms)
     {
         input = HttpUtility.HtmlDecode(input);
-        
+
         foreach (var searchTerm in searchTerms)
         {
             input = Regex.Replace(input, Regex.Escape(searchTerm), @"<strong>$0</strong>", RegexOptions.IgnoreCase);
         }
-        
+
         return new HtmlString(input);
     }
-    
+
     // Formats a string and returns as HTML
     public IHtmlString FormatHtml(string input, params object[] args)
     {
         return Html.Raw(string.Format(input, args));
     }
-    
+
     // Gets a dictionary value with a fallback
     public string GetDictionaryValue(string key, string fallback)
     {
@@ -413,7 +417,7 @@
             return fallback;
         }
     }
-    
+
     // Splits a coma seperated string into a list
     public IList<string> SplitToList(string input)
     {
@@ -421,12 +425,12 @@
             .Select(f => f.Trim())
             .Where(f => !string.IsNullOrEmpty(f))
             .ToList();
-    } 
+    }
 
     // ==================================================
     //  Helper Classes
     //==================================================
-    
+
     public class SearchViewModel
     {
         // Query Parameters
